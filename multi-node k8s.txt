@@ -1,0 +1,154 @@
+step-1 Install docker
+yum install docker -y
+systemctl enable docker --now
+
+
+
+Step-2 Install Kubeadm
+a . First configure yum
+cd /etc/yum.repos.d
+
+cat <<EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-\$basearch
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+exclude=kubelet kubeadm kubectl
+EOF
+
+yum repolist 
+
+b. Install kubeadm
+yum install -y kubeadm --disableexcludes=kubernetes
+
+c. start kubelet service
+systemctl enable kubelet --now
+(failed :- to launch container , we need docker images)
+
+
+
+
+Step-3 Install docker images
+kubeadm config images pull
+docker images
+
+
+
+Step-4 Initialize the master
+
+a kubeadm init 
+--change docker driver  cd /etc/docker/daemon.json
+{
+  "exec-opts": ["native.cgroupdriver=systemd"]
+}
+
+b . Install tc(traffic controll)
+yum install iproute-tc
+
+c. iptables =1
+vim /etc/sysctl.d/k8s.conf
+  net.bridge.bridge-nf-call-ip6tables = 1
+  net.bridge.bridge-nf-call-iptables = 1
+
+sysctl --system
+
+ d. kubeadm init --pod-network-cidr=10.240.0.0/16 --ignore-preflight-errors=NumCPU --ignore-preflight-errors=Mem
+net.ipv4.conf.all.accept_redirects = 0
+
+
+Success fully
+
+Step-5 To run any command Master makes as a client(kubectl get nodes)
+ mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+
+
+
+
+
+
+
+
+Step-6 Configure the Slave
+step-1 Install docker
+yum install docker -y
+systemctl enable docker --now
+
+
+
+Step-2 Install Kubeadm
+a . First configure yum
+cd /etc/yum.repos.d
+
+cat <<EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-\$basearch
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+exclude=kubelet kubeadm kubectl
+EOF
+
+yum repolist 
+
+b. Install kubeadm
+yum install -y kubeadm --disableexcludes=kubernetes
+
+c. start kubelet service
+systemctl enable kubelet --now
+(failed :- to launch container , we need docker images)
+
+
+
+a kubeadm install to use join facility povided by kubeadm
+--change docker driver 
+ cd /etc/docker/daemon.json
+{
+  "exec-opts": ["native.cgroupdriver=systemd"]
+}
+
+b . Install tc(traffic controll)
+yum install iproute-tc
+
+c. iptables =1
+vim /etc/sysctl.d/k8s.conf
+  net.bridge.bridge-nf-call-ip6tables = 1
+  net.bridge.bridge-nf-call-iptables = 1
+
+sysctl --system
+
+kubeadm join 172.31.47.250:6443 --token 570fr3.bho5t7xk1chh38t6     --discovery-token-ca-cert-hash sha256:3a87567ccb0b3525dd0ccfb1bd9266c7065559dc33d02f859ef5e81c184373fb
+
+to join the master
+kubeadm join 172.31.47.250:6443 --token v7hqy2.q74m97pqdxwh6l7m \
+    --discovery-token-ca-cert-hash sha256:3a87567ccb0b3525dd0ccfb1bd9266c7065559dc33d02f859ef5e81c184373fb
+
+Now we see master that one slave is connected
+kubectl get nodes
+(we see both are connected but both are not ready)
+
+
+
+
+
+
+Step-7  Create overlay network by flannel
+kubectl get pods -n kube-system(coredns not running)
+kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+
+(Now slave node become ready but master node ready Because ip range of flannel and master is conflict. So solve we edit the flannel ip range and give master ip range)
+
+kubectl get cm -n kube-system
+kubectl edit cm kube-flannel-cfg -n kube-system
+(same ip range of master and restart the service . We delete pod running of flannel . So they launch by new flannel configuration and coredns pods also running and master become ready
+
+(create overlay n/w by flunnel)
+Ans solve ip conflict btw master and flunnel
+Now both are ready. In this way we can launch multiple slave or create an ami of slave and launch multiple slave by that ami
