@@ -22,7 +22,7 @@ EOF
 yum repolist 
 
 b. Install kubeadm
-yum install -y kubeadm --disableexcludes=kubernetes
+yum install -y kubeadm kubectl kubelet --disableexcludes=kubernetes
 
 c. start kubelet service
 systemctl enable kubelet --now
