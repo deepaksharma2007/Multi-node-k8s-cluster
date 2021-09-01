@@ -40,13 +40,14 @@ docker images
 Step-4 Initialize the master
 
 a kubeadm init 
---change docker driver  cd /etc/docker/daemon.json
+--change docker driver  
+vim /etc/docker/daemon.json
 {
   "exec-opts": ["native.cgroupdriver=systemd"]
 }
 
 b . Install tc(traffic controll)
-yum install iproute-tc
+yum install iproute-tc -y
 
 c. iptables =1
 vim /etc/sysctl.d/k8s.conf
@@ -109,18 +110,19 @@ systemctl enable kubelet --now
 
 a kubeadm install to use join facility povided by kubeadm
 --change docker driver 
- cd /etc/docker/daemon.json
+ vim /etc/docker/daemon.json
 {
   "exec-opts": ["native.cgroupdriver=systemd"]
 }
+systemctl restart docker
 
 b . Install tc(traffic controll)
-yum install iproute-tc
+yum install iproute-tc -y
 
 c. iptables =1
 vim /etc/sysctl.d/k8s.conf
-  net.bridge.bridge-nf-call-ip6tables = 1
-  net.bridge.bridge-nf-call-iptables = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
 
 sysctl --system
 
@@ -143,7 +145,7 @@ Step-7  Create overlay network by flannel
 kubectl get pods -n kube-system(coredns not running)
 kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
 
-(Now slave node become ready but master node ready Because ip range of flannel and master is conflict. So solve we edit the flannel ip range and give master ip range)
+(Now slave node become ready but master node is not ready Because ip range of flannel and master is conflict. So solve we edit the flannel ip range and give master ip range)
 
 kubectl get cm -n kube-system
 kubectl edit cm kube-flannel-cfg -n kube-system
@@ -152,3 +154,18 @@ kubectl edit cm kube-flannel-cfg -n kube-system
 (create overlay n/w by flunnel)
 Ans solve ip conflict btw master and flunnel
 Now both are ready. In this way we can launch multiple slave or create an ami of slave and launch multiple slave by that ami
+
+
+
+
+
+
+
+
+
+# wordpress and mysql
+kubectl run mydb --image=mysql:5.7 --env MYSQL_ROOT_PASSWORD=redhat  --env MYSQL_DATABASE=mydb  --env MYSQL_USER=deepak  --env MYSQL_PASSWORD=dsredhat
+
+kubectl run mywp --image=wordpress:5.1.1-php7.3-apache
+
+kubectl expose pod mywp --type=NodePort  --port=80
