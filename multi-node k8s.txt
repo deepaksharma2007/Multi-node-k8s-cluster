@@ -46,6 +46,8 @@ vim /etc/docker/daemon.json
   "exec-opts": ["native.cgroupdriver=systemd"]
 }
 
+And restart docker service :- systemctl restart docker
+
 b . Install tc(traffic controll)
 yum install iproute-tc -y
 
