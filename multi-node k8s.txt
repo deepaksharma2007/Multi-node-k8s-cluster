@@ -34,7 +34,7 @@ systemctl enable kubelet --now
 Step-3 Install docker images
 kubeadm config images pull
 docker images
-
+systemctl enable kubelet --now
 
 
 Step-4 Initialize the master
